@@ -42,6 +42,8 @@ router.get("/api/posts", async (req, res) => {
         "userId",
         [sequelize.col("nickname"), "nickname"],
         "title",
+        "content",
+        "image",
         "postCreatedAt",
         "postUpdatedAt",
         [sequelize.fn("COUNT", sequelize.col("Likes.postId")), "likeNum"],
@@ -169,16 +171,32 @@ router.put("/api/post/:postId", authMiddleware, async (req, res) => {
     if (userId !== post.userId) {
       return res.status(403).json({ message: "게시글 수정 권한이 없습니다." });
     }
+
+    // 수정할 내용에 따라 수정해주기
+    if (title) {
+      post.title = title;
+    }
+    if (content) {
+      post.content = content;
+    }
+    if (image) {
+      post.image = image;
+    }
+
     // 수정할 부분이 모두 없을 경우 / 수정할 내용이 있다면 해당 부분만 수정
     if (!(title && content && image)) {
       return res.status(400).json({ message: "수정할 내용이 없습니다." });
-    }else {
-      const updateCount = await Posts.update(
-        {title, content, image},
-        {where: {postId, userId: userId}}
-      )
     }
-    
+
+    await post.save();
+
+    // 수정한 게시글이 없을 경우
+    if (updateCount < 1) {
+      return res
+        .status(401)
+        .json({ message: "게시글이 정상적으로 수정되지 않았습니다." });
+    }
+    return res.status(200).json({ message: "게시글을 수정하였습니다." });
   } catch {
     return res.status(400).json({ message: "게시글 수정에 실패했습니다." });
   }
@@ -200,18 +218,22 @@ router.delete("/api/posts/:postId", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "존재하지 않는 게시글입니다." });
     }
     // 게시글 권한 확인
-    if(userId !== post.userId) {
-        return res.status(403).json({ message: "게시글 삭제 권한이 없습니다."})
+    if (userId !== post.userId) {
+      return res.status(403).json({ message: "게시글 삭제 권한이 없습니다." });
     }
 
     // 게시글 삭제
-    const deleteCount = await Posts.destroy({where: {postId}});
+    const deleteCount = await Posts.destroy({ where: { postId } });
     if (deleteCount < 1) {
-        return res.status(400).json({ message: "게시글이 정상적으로 삭제되지 않았습니다."});
+      return res
+        .status(400)
+        .json({ message: "게시글이 정상적으로 삭제되지 않았습니다." });
     }
-    return res.status(200).json({ message: '게시글을 삭제하였습니다.'});
+    return res.status(200).json({ message: "게시글을 삭제하였습니다." });
   } catch {
-    return res.status(400).json({ message: "게시글이 정상적으로 삭제되지 않았습니다."});
+    return res
+      .status(400)
+      .json({ message: "게시글이 정상적으로 삭제되지 않았습니다." });
   }
 });
 
