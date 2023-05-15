@@ -188,7 +188,7 @@ router.put("/api/post/:postId", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "수정할 내용이 없습니다." });
     }
 
-    await post.save();
+    const updateCount = await post.save();
 
     // 수정한 게시글이 없을 경우
     if (updateCount < 1) {
