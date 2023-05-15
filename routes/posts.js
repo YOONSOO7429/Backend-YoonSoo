@@ -45,7 +45,7 @@ router.get("/api/posts", async (req, res) => {
         "postCreatedAt",
         "postUpdatedAt",
         [sequelize.fn("COUNT", sequelize.col("Likes.postId")), "likeNum"],
-        [sequelize.fn("COUNt", sequelize.col("Comments.postId")), "commentNum"],
+        [sequelize.fn("COUNT", sequelize.col("Comments.postId")), "commentNum"],
       ],
       include: [
         {
@@ -169,11 +169,16 @@ router.put("/api/post/:postId", authMiddleware, async (req, res) => {
     if (userId !== post.userId) {
       return res.status(403).json({ message: "게시글 수정 권한이 없습니다." });
     }
-    // 수정할 부분이 없을 경우
+    // 수정할 부분이 모두 없을 경우 / 수정할 내용이 있다면 해당 부분만 수정
     if (!(title && content && image)) {
       return res.status(400).json({ message: "수정할 내용이 없습니다." });
+    }else {
+      const updateCount = await Posts.update(
+        {title, content, image},
+        {where: {postId, userId: userId}}
+      )
     }
-    // 추가 작성완료하기...
+    
   } catch {
     return res.status(400).json({ message: "게시글 수정에 실패했습니다." });
   }
